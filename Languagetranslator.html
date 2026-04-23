@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BhashaBridge — English to Hindi Translator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── Variables ── */
+    :root {
+      --saffron:   #FF6B00;
+      --saffron-lt:#FFF0E5;
+      --green:     #138808;
+      --green-lt:  #E8F5E9;
+      --navy:      #000080;
+      --navy-lt:   #E8EAF6;
+      --bg:        #FAFAF8;
+      --surface:   #FFFFFF;
+      --border:    #E8E0D8;
+      --text:      #1A1208;
+      --muted:     #7A6B5A;
+      --radius:    16px;
+      --shadow:    0 8px 32px rgba(26,18,8,0.10);
+      --shadow-lg: 0 20px 60px rgba(26,18,8,0.16);
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Decorative background pattern ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        radial-gradient(circle at 15% 20%, rgba(255,107,0,0.07) 0%, transparent 50%),
+        radial-gradient(circle at 85% 80%, rgba(19,136,8,0.06) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(0,0,128,0.03) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Header ── */
+    header {
+      position: relative; z-index: 1;
+      padding: 32px 24px 20px;
+      text-align: center;
+      animation: fadeDown 0.6s ease;
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .flag-strip {
+      display: flex;
+      justify-content: center;
+      gap: 0; margin-bottom: 20px;
+    }
+
+    .flag-strip span {
+      width: 36px; height: 6px; border-radius: 3px;
+    }
+    .flag-strip .f1 { background: #FF9933; }
+    .flag-strip .f2 { background: #FFFFFF; border: 1px solid #eee; }
+    .flag-strip .f3 { background: #138808; }
+
+    .app-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(36px, 6vw, 56px);
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+
+    .app-title .accent-saffron { color: var(--saffron); }
+    .app-title .accent-green   { color: var(--green); }
+
+    .app-subtitle {
+      margin-top: 8px;
+      font-size: 15px; color: var(--muted);
+      font-weight: 400;
+    }
+
+    .devanagari-deco {
+      font-family: 'Tiro Devanagari Hindi', serif;
+      font-size: 13px; color: var(--muted);
+      margin-top: 6px; opacity: 0.7;
+    }
+
+    /* ── Language badges ── */
+    .lang-row {
+      display: flex; align-items: center;
+      justify-content: center; gap: 14px;
+      margin: 24px 0 0;
+    }
+
+    .lang-badge {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 16px;
+      border-radius: 50px;
+      font-size: 13px; font-weight: 600;
+    }
+
+    .lang-badge.en {
+      background: var(--navy-lt);
+      color: var(--navy);
+      border: 1.5px solid rgba(0,0,128,0.2);
+    }
+
+    .lang-badge.hi {
+      background: var(--saffron-lt);
+      color: var(--saffron);
+      border: 1.5px solid rgba(255,107,0,0.2);
+    }
+
+    .lang-arrow {
+      font-size: 18px; color: var(--muted);
+      animation: arrowPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes arrowPulse {
+      0%, 100% { transform: translateX(0); opacity: 0.7; }
+      50%       { transform: translateX(5px); opacity: 1; }
+    }
+
+    /* ── Main card ── */
+    main {
+      position: relative; z-index: 1;
+      flex: 1;
+      max-width: 860px; width: 100%;
+      margin: 0 auto;
+      padding: 16px 24px 48px;
+      animation: fadeUp 0.7s ease 0.1s both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Translator panels ── */
+    .translator {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      background: var(--surface);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .panel {
+      padding: 24px;
+      display: flex; flex-direction: column;
+      min-height: 300px;
+    }
+
+    .panel-left  { border-right: 1px solid var(--border); }
+
+    .panel-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .panel-label {
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+    }
+
+    .panel-left  .panel-label { color: var(--navy); }
+    .panel-right .panel-label { color: var(--saffron); }
+
+    .char-count {
+      font-size: 11px; color: var(--muted);
+    }
+
+    .copy-btn {
+      background: none; border: none;
+      font-size: 16px; cursor: pointer;
+      padding: 4px 8px; border-radius: 6px;
+      transition: background 0.15s;
+      color: var(--muted);
+    }
+    .copy-btn:hover { background: #f0ece6; }
+
+    textarea {
+      flex: 1; border: none; outline: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px; line-height: 1.7;
+      color: var(--text);
+      background: transparent;
+      resize: none;
+      width: 100%;
+    }
+
+    textarea::placeholder { color: #c0b8ae; }
+
+    .output-area {
+      flex: 1;
+      font-family: 'Tiro Devanagari Hindi', serif;
+      font-size: 17px; line-height: 1.8;
+      color: var(--text);
+      min-height: 200px;
+    }
+
+    .output-placeholder {
+      color: #c0b8ae;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+    }
+
+    /* Translating shimmer */
+    .shimmer {
+      background: linear-gradient(90deg, #f0ece6 25%, #e8e0d8 50%, #f0ece6 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 8px;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .shimmer-line {
+      height: 18px; border-radius: 6px; margin-bottom: 10px;
+    }
+
+    /* ── Action bar ── */
+    .action-bar {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .btn-translate {
+      flex: 1;
+      padding: 15px 32px;
+      background: linear-gradient(135deg, #FF6B00, #FF9500);
+      color: #fff; border: none;
+      border-radius: 50px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px; font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+      box-shadow: 0 6px 24px rgba(255,107,0,0.40);
+      display: flex; align-items: center;
+      justify-content: center; gap: 8px;
+    }
+
+    .btn-translate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 32px rgba(255,107,0,0.50);
+    }
+
+    .btn-translate:active  { transform: scale(0.97); }
+    .btn-translate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .btn-clear {
+      padding: 15px 22px;
+      background: #f5f0eb;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+    }
+
+    .btn-clear:hover { background: #ede6dd; transform: scale(1.02); }
+
+    /* Spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Suggestions / quick phrases ── */
+    .suggestions {
+      margin-top: 24px;
+    }
+
+    .suggestions-label {
+      font-size: 12px; font-weight: 700;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 10px;
+    }
+
+    .chips {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 7px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+
+    .chip:hover {
+      background: var(--saffron-lt);
+      border-color: rgba(255,107,0,0.35);
+      color: var(--saffron);
+      transform: scale(1.03);
+    }
+
+    /* ── Status toast ── */
+    .toast {
+      position: fixed;
+      bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1A1208; color: #fff;
+      padding: 12px 24px; border-radius: 50px;
+      font-size: 14px; font-weight: 500;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      opacity: 0; z-index: 100;
+      white-space: nowrap;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: flex; gap: 12px;
+      margin-top: 20px;
+    }
+
+    .stat-box {
+      flex: 1; padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .stat-box .val {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px; font-weight: 700;
+      color: var(--saffron);
+    }
+
+    .stat-box .lbl {
+      font-size: 11px; color: var(--muted);
+      font-weight: 500; margin-top: 2px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      position: relative; z-index: 1;
+      text-align: center; padding: 20px;
+      font-size: 12px; color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    footer span { color: var(--saffron); }
+
+    /* ── Responsive ── */
+    @media (max-width: 620px) {
+      .translator { grid-template-columns: 1fr; }
+      .panel-left { border-right: none; border-bottom: 1px solid var(--border); }
+      .stats-row { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="flag-strip">
+      <span class="f1"></span>
+      <span class="f2"></span>
+      <span class="f3"></span>
+    </div>
+    <h1 class="app-title">
+      <span class="accent-saffron">Bhasha</span><span class="accent-green">Bridge</span>
+    </h1>
+    <p class="app-subtitle">English → Hindi Translator</p>
+    <p class="devanagari-deco">अंग्रेज़ी से हिंदी अनुवादक</p>
+
+    <div class="lang-row">
+      <div class="lang-badge en">🇬🇧 English</div>
+      <div class="lang-arrow">→</div>
+      <div class="lang-badge hi">🇮🇳 हिन्दी</div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main>
+
+    <!-- Translator panels -->
+    <div class="translator">
+      <!-- Left: Input -->
+      <div class="panel panel-left">
+        <div class="panel-header">
+          <span class="panel-label">English</span>
+          <span class="char-count" id="charCount">0 / 500</span>
+        </div>
+        <textarea
+          id="inputText"
+          maxlength="500"
+          placeholder="Type or paste English text here..."
+        ></textarea>
+      </div>
+
+      <!-- Right: Output -->
+      <div class="panel panel-right">
+        <div class="panel-header">
+          <span class="panel-label">हिन्दी</span>
+          <button class="copy-btn" id="copyBtn" title="Copy translation" onclick="copyText()">📋</button>
+        </div>
+        <div class="output-area" id="outputArea">
+          <span class="output-placeholder">Hindi translation will appear here...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action bar -->
+    <div class="action-bar">
+      <button class="btn-clear" onclick="clearAll()">✕ Clear</button>
+      <button class="btn-translate" id="translateBtn" onclick="handleTranslate()">
+        <div class="spinner" id="spinner"></div>
+        <span id="btnText">🌐 Translate to Hindi</span>
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="val" id="statCount">0</div>
+        <div class="lbl">Translations done</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="statChars">0</div>
+        <div class="lbl">Characters translated</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="statWords">0</div>
+        <div class="lbl">Words translated</div>
+      </div>
+    </div>
+
+    <!-- Quick phrases -->
+    <div class="suggestions">
+      <div class="suggestions-label">Quick phrases</div>
+      <div class="chips" id="chipsContainer"></div>
+    </div>
+
+  </main>
+
+  <footer>
+    Powered by <span>MyMemory</span> Free Translation API &nbsp;•&nbsp; Made with ❤️ for India
+  </footer>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────
+    let translationCount = 0;
+    let totalChars = 0;
+    let totalWords = 0;
+
+    const quickPhrases = [
+      "Hello, how are you?",
+      "Good morning!",
+      "Thank you very much.",
+      "What is your name?",
+      "I love India.",
+      "Where is the hotel?",
+      "Please help me.",
+      "Have a nice day!"
+    ];
+
+    // ── DOM refs ───────────────────────────────────────────
+    const inputEl    = document.getElementById("inputText");
+    const outputEl   = document.getElementById("outputArea");
+    const translateBtn = document.getElementById("translateBtn");
+    const spinner    = document.getElementById("spinner");
+    const btnText    = document.getElementById("btnText");
+    const charCount  = document.getElementById("charCount");
+    const toastEl    = document.getElementById("toast");
+
+    // ── Char counter ───────────────────────────────────────
+    inputEl.addEventListener("input", () => {
+      const len = inputEl.value.length;
+      charCount.textContent = `${len} / 500`;
+      charCount.style.color = len > 450 ? "#e53935" : "var(--muted)";
+    });
+
+    // ── Quick phrases ──────────────────────────────────────
+    const chipsEl = document.getElementById("chipsContainer");
+    quickPhrases.forEach(phrase => {
+      const chip = document.createElement("button");
+      chip.className = "chip";
+      chip.textContent = phrase;
+      chip.onclick = () => {
+        inputEl.value = phrase;
+        charCount.textContent = `${phrase.length} / 500`;
+        handleTranslate();
+      };
+      chipsEl.appendChild(chip);
+    });
+
+    // ── Translation API ────────────────────────────────────
+    async function translateText(text) {
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|hi`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Translation API error");
+      const data = await res.json();
+      if (data.responseData?.translatedText) return data.responseData.translatedText;
+      throw new Error("No translation found");
+    }
+
+    // ── Shimmer loading ────────────────────────────────────
+    function showShimmer() {
+      outputEl.innerHTML = `
+        <div class="shimmer shimmer-line" style="width:90%"></div>
+        <div class="shimmer shimmer-line" style="width:75%"></div>
+        <div class="shimmer shimmer-line" style="width:85%"></div>
+      `;
+    }
+
+    // ── Handle translate ───────────────────────────────────
+    async function handleTranslate() {
+      const text = inputEl.value.trim();
+      if (!text) { showToast("⚠️ Please enter some text first!"); return; }
+
+      translateBtn.disabled = true;
+      spinner.style.display = "block";
+      btnText.textContent   = "Translating...";
+      showShimmer();
+
+      try {
+        const result = await translateText(text);
+        outputEl.style.opacity = "0";
+        outputEl.innerHTML = result;
+
+        // Animate in
+        setTimeout(() => {
+          outputEl.style.transition = "opacity 0.4s ease";
+          outputEl.style.opacity = "1";
+        }, 50);
+
+        // Update stats
+        translationCount++;
+        totalChars += text.length;
+        totalWords += text.split(/\s+/).filter(Boolean).length;
+        document.getElementById("statCount").textContent = translationCount;
+        document.getElementById("statChars").textContent = totalChars.toLocaleString();
+        document.getElementById("statWords").textContent = totalWords.toLocaleString();
+
+        showToast("✅ Translation complete!");
+      } catch (err) {
+        outputEl.innerHTML = `<span style="color:#e53935">❌ Translation failed. Please try again.</span>`;
+        showToast("❌ " + err.message);
+      } finally {
+        translateBtn.disabled = false;
+        spinner.style.display = "none";
+        btnText.textContent   = "🌐 Translate to Hindi";
+      }
+    }
+
+    // ── Clear ──────────────────────────────────────────────
+    function clearAll() {
+      inputEl.value = "";
+      outputEl.innerHTML = `<span class="output-placeholder">Hindi translation will appear here...</span>`;
+      charCount.textContent = "0 / 500";
+      charCount.style.color = "var(--muted)";
+      showToast("🗑️ Cleared!");
+    }
+
+    // ── Copy ───────────────────────────────────────────────
+    function copyText() {
+      const text = outputEl.innerText.trim();
+      if (!text || text === "Hindi translation will appear here...") {
+        showToast("⚠️ Nothing to copy yet!");
+        return;
+      }
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("📋 Copied to clipboard!");
+      }).catch(() => {
+        showToast("❌ Copy failed.");
+      });
+    }
+
+    // ── Toast ──────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg) {
+      clearTimeout(toastTimer);
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2500);
+    }
+
+    // ── Enter key shortcut ─────────────────────────────────
+    inputEl.addEventListener("keydown", e => {
+      if (e.key === "Enter" && e.ctrlKey) handleTranslate();
+    });
+  </script>
+
+</body>
+</html>
